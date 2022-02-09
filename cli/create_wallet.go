@@ -1,12 +1,12 @@
 package cli
 
 import (
-	"blockchain_demo/blockchain"
+	"blockchain_demo/wallet"
 	"fmt"
 )
 
 func (cli *CLI) createWallet() {
-	wallets, _ := blockchain.NewWallets()
+	wallets, _ := wallet.NewWallets()
 	address := wallets.CreateWallet()
 	wallets.SaveToFile()
 

@@ -1,6 +1,9 @@
-package blockchain
+package transaction
 
-import "bytes"
+import (
+	"blockchain_demo/wallet"
+	"bytes"
+)
 
 type TXInput struct {
 	Txid      []byte
@@ -10,5 +13,5 @@ type TXInput struct {
 }
 
 func (in TXInput) UsesKey(pubKeyHash []byte) bool {
-	return bytes.Equal(pubKeyHash, HashPubKey(in.PubKey))
+	return bytes.Equal(pubKeyHash, wallet.HashPubKey(in.PubKey))
 }

@@ -1,13 +1,13 @@
 package cli
 
 import (
-	"blockchain_demo/blockchain"
+	"blockchain_demo/wallet"
 	"fmt"
 	"log"
 )
 
 func (cli *CLI) listAddresses() {
-	wallets, err := blockchain.NewWallets()
+	wallets, err := wallet.NewWallets()
 	if err != nil {
 		log.Panic(err)
 	}

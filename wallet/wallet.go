@@ -1,4 +1,4 @@
-package blockchain
+package wallet
 
 import (
 	"blockchain_demo/config"

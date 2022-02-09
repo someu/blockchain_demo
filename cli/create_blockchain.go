@@ -2,12 +2,13 @@ package cli
 
 import (
 	"blockchain_demo/blockchain"
+	"blockchain_demo/wallet"
 	"fmt"
 	"log"
 )
 
 func (cli *CLI) createBlockchain(address string) {
-	if !blockchain.ValidateAddress(address) {
+	if !wallet.ValidateAddress(address) {
 		log.Panic("invalid address")
 	}
 	bc := blockchain.CreateBlockchain(address)

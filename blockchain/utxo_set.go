@@ -2,6 +2,8 @@ package blockchain
 
 import (
 	"blockchain_demo/config"
+	"blockchain_demo/transaction"
+	"blockchain_demo/wallet"
 	"encoding/hex"
 	"log"
 
@@ -65,7 +67,7 @@ func (u UTXOSet) FindSpendableOutputs(pubKeyHash []byte, amount int) (int, map[s
 
 		for k, v := c.First(); k != nil; k, v = c.Next() {
 			txID := hex.EncodeToString(k)
-			outs := DeserializeTXOutputs(v)
+			outs := transaction.DeserializeTXOutputs(v)
 			for outIndex, out := range outs.Outputs {
 				if out.IsLockedwithKey(pubKeyHash) && accumulated < amount {
 					accumulated += out.Value
@@ -84,8 +86,8 @@ func (u UTXOSet) FindSpendableOutputs(pubKeyHash []byte, amount int) (int, map[s
 	return accumulated, unspentOutputs
 }
 
-func (u UTXOSet) FindUTXO(pubKeyHash []byte) []TXOutput {
-	var UTXOs []TXOutput
+func (u UTXOSet) FindUTXO(pubKeyHash []byte) []transaction.TXOutput {
+	var UTXOs []transaction.TXOutput
 	db := u.BlockChain.DB
 
 	err := db.View(func(t *bolt.Tx) error {
@@ -93,7 +95,7 @@ func (u UTXOSet) FindUTXO(pubKeyHash []byte) []TXOutput {
 		c := b.Cursor()
 
 		for k, v := c.First(); k != nil; k, v = c.Next() {
-			outs := DeserializeTXOutputs(v)
+			outs := transaction.DeserializeTXOutputs(v)
 			for _, out := range outs.Outputs {
 				if out.IsLockedwithKey(pubKeyHash) {
 					UTXOs = append(UTXOs, out)
@@ -119,8 +121,8 @@ func (u UTXOSet) Update(block Block) {
 		for _, tx := range block.Transactions {
 			if !tx.IsCoinbase() {
 				for _, vin := range tx.Vin {
-					updateOutputs := TXOutputs{}
-					outs := DeserializeTXOutputs(b.Get(vin.Txid))
+					updateOutputs := transaction.TXOutputs{}
+					outs := transaction.DeserializeTXOutputs(b.Get(vin.Txid))
 
 					for outIdx, out := range outs.Outputs {
 						if outIdx != vin.Vout {
@@ -140,7 +142,7 @@ func (u UTXOSet) Update(block Block) {
 					}
 				}
 			}
-			newOutputs := TXOutputs{
+			newOutputs := transaction.TXOutputs{
 				Outputs: tx.Vout,
 			}
 			err := b.Put(tx.ID, newOutputs.Serialize())
@@ -155,4 +157,50 @@ func (u UTXOSet) Update(block Block) {
 	if err != nil {
 		log.Panic(err)
 	}
+}
+
+func NewUTXOTransaction(from string, to string, amount int, UTXOSet *UTXOSet) *transaction.Transaction {
+	var inputs []transaction.TXInput
+	var outputs []transaction.TXOutput
+
+	wallets, err := wallet.NewWallets()
+	if err != nil {
+		log.Panic(err)
+	}
+	w := wallets.GetWallet(from)
+	pubKeyHash := wallet.HashPubKey(w.PublicKey)
+
+	acc, spendableOutputs := UTXOSet.FindSpendableOutputs(pubKeyHash, amount)
+
+	if acc < amount {
+		log.Panic("no enough funds")
+	}
+
+	for txid, outs := range spendableOutputs {
+		txID, err := hex.DecodeString(txid)
+		if err != nil {
+			log.Panic(err)
+		}
+		for _, out := range outs {
+			inputs = append(inputs, transaction.TXInput{
+				Txid:      txID,
+				Vout:      out,
+				Signature: nil,
+				PubKey:    w.PublicKey,
+			})
+		}
+	}
+	outputs = append(outputs, transaction.NewTXOutput(amount, to))
+	if acc > amount {
+		outputs = append(outputs, transaction.NewTXOutput(acc-amount, from))
+	}
+	tx := transaction.Transaction{
+		ID:   nil,
+		Vin:  inputs,
+		Vout: outputs,
+	}
+	tx.ID = tx.Hash()
+	UTXOSet.BlockChain.SignTransaction(&tx, w.PrivateKey)
+
+	return &tx
 }

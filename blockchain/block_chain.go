@@ -2,6 +2,8 @@ package blockchain
 
 import (
 	"blockchain_demo/config"
+	"blockchain_demo/transaction"
+	"blockchain_demo/wallet"
 	"bytes"
 	"crypto/ecdsa"
 	"encoding/hex"
@@ -14,7 +16,7 @@ import (
 
 const (
 	dbFile       = config.DBFile
-	blocksBucket = "blocks"
+	blocksBucket = config.BlockChainBucketName
 )
 
 type BlockChain struct {
@@ -22,7 +24,7 @@ type BlockChain struct {
 	DB  *bolt.DB
 }
 
-func (bc *BlockChain) MineBlock(transactions []*Transaction) *Block {
+func (bc *BlockChain) MineBlock(transactions []*transaction.Transaction) *Block {
 	for _, tx := range transactions {
 		if !bc.VerifyTransaction(*tx) {
 			log.Panic("invalid transaction")
@@ -63,8 +65,8 @@ func (bc *BlockChain) Iterator() *BlcokChainIterator {
 	}
 }
 
-func (bc *BlockChain) FindUTXO() map[string]TXOutputs {
-	var UTXOs = make(map[string]TXOutputs)
+func (bc *BlockChain) FindUTXO() map[string]transaction.TXOutputs {
+	var UTXOs = make(map[string]transaction.TXOutputs)
 
 	spentTXOs := make(map[string][]int)
 	var bci *BlcokChainIterator
@@ -109,7 +111,7 @@ func (bc *BlockChain) FindUTXO() map[string]TXOutputs {
 	return UTXOs
 }
 
-func (bc *BlockChain) FindTransaction(ID []byte) *Transaction {
+func (bc *BlockChain) FindTransaction(ID []byte) *transaction.Transaction {
 	bci := bc.Iterator()
 	for {
 		bc := bci.Next()
@@ -125,8 +127,8 @@ func (bc *BlockChain) FindTransaction(ID []byte) *Transaction {
 	return nil
 }
 
-func (bc *BlockChain) GetPrevTransactions(tx Transaction) map[string]Transaction {
-	prevTXs := make(map[string]Transaction)
+func (bc *BlockChain) GetPrevTransactions(tx transaction.Transaction) map[string]transaction.Transaction {
+	prevTXs := make(map[string]transaction.Transaction)
 
 	for _, vin := range tx.Vin {
 		prevTX := bc.FindTransaction(vin.Txid)
@@ -138,12 +140,12 @@ func (bc *BlockChain) GetPrevTransactions(tx Transaction) map[string]Transaction
 	return prevTXs
 }
 
-func (bc *BlockChain) SignTransaction(tx *Transaction, privKey ecdsa.PrivateKey) {
+func (bc *BlockChain) SignTransaction(tx *transaction.Transaction, privKey ecdsa.PrivateKey) {
 	prevTXs := bc.GetPrevTransactions(*tx)
 	tx.Sign(privKey, prevTXs)
 }
 
-func (bc *BlockChain) VerifyTransaction(tx Transaction) bool {
+func (bc *BlockChain) VerifyTransaction(tx transaction.Transaction) bool {
 	if tx.IsCoinbase() {
 		return true
 	}
@@ -185,7 +187,7 @@ func CreateBlockchain(address string) *BlockChain {
 	if dbExist(dbFile) {
 		log.Panic("db already exist")
 	}
-	if address == "" || !ValidateAddress(address) {
+	if address == "" || !wallet.ValidateAddress(address) {
 		log.Panic("invalid genesis address")
 	}
 	db, err := bolt.Open(dbFile, 0600, nil)
@@ -194,7 +196,7 @@ func CreateBlockchain(address string) *BlockChain {
 	}
 	var tip []byte
 	err = db.Update(func(t *bolt.Tx) error {
-		genesis := NewGenesisBlock(NewCoinbaseTx(address, "to genesis"))
+		genesis := NewGenesisBlock(transaction.NewCoinbaseTx(address, "to genesis"))
 		b, err := t.CreateBucket([]byte(blocksBucket))
 		if err != nil {
 			return err

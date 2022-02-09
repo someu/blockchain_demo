@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"blockchain_demo/transaction"
 	"bytes"
 	"crypto/sha256"
 	"encoding/gob"
@@ -10,7 +11,7 @@ import (
 
 type Block struct {
 	Timestamp     int64
-	Transactions  []*Transaction
+	Transactions  []*transaction.Transaction
 	PrevBlockHash []byte
 	Hash          []byte
 	Nonce         int
@@ -36,7 +37,7 @@ func (b *Block) HashTransactions() []byte {
 	return txHash[:]
 }
 
-func NewBlock(transactions []*Transaction, prevBlockHash []byte) *Block {
+func NewBlock(transactions []*transaction.Transaction, prevBlockHash []byte) *Block {
 	b := &Block{
 		Timestamp:     time.Now().Unix(),
 		Transactions:  transactions,
@@ -49,8 +50,8 @@ func NewBlock(transactions []*Transaction, prevBlockHash []byte) *Block {
 	return b
 }
 
-func NewGenesisBlock(coinbase *Transaction) *Block {
-	return NewBlock([]*Transaction{coinbase}, []byte{})
+func NewGenesisBlock(coinbase *transaction.Transaction) *Block {
+	return NewBlock([]*transaction.Transaction{coinbase}, []byte{})
 }
 
 func DeserializeBlock(d []byte) *Block {

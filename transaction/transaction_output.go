@@ -1,4 +1,4 @@
-package blockchain
+package transaction
 
 import (
 	"blockchain_demo/utils"

@@ -1,4 +1,4 @@
-package blockchain
+package transaction
 
 import (
 	"bytes"
@@ -186,51 +186,5 @@ func NewCoinbaseTx(to, data string) *Transaction {
 		Vout: []TXOutput{out},
 	}
 	tx.ID = tx.Hash()
-	return &tx
-}
-
-func NewUTXOTransaction(from string, to string, amount int, UTXOSet *UTXOSet) *Transaction {
-	var inputs []TXInput
-	var outputs []TXOutput
-
-	wallets, err := NewWallets()
-	if err != nil {
-		log.Panic(err)
-	}
-	wallet := wallets.GetWallet(from)
-	pubKeyHash := HashPubKey(wallet.PublicKey)
-
-	acc, spendableOutputs := UTXOSet.FindSpendableOutputs(pubKeyHash, amount)
-
-	if acc < amount {
-		log.Panic("no enough funds")
-	}
-
-	for txid, outs := range spendableOutputs {
-		txID, err := hex.DecodeString(txid)
-		if err != nil {
-			log.Panic(err)
-		}
-		for _, out := range outs {
-			inputs = append(inputs, TXInput{
-				Txid:      txID,
-				Vout:      out,
-				Signature: nil,
-				PubKey:    wallet.PublicKey,
-			})
-		}
-	}
-	outputs = append(outputs, NewTXOutput(amount, to))
-	if acc > amount {
-		outputs = append(outputs, NewTXOutput(acc-amount, from))
-	}
-	tx := Transaction{
-		ID:   nil,
-		Vin:  inputs,
-		Vout: outputs,
-	}
-	tx.ID = tx.Hash()
-	UTXOSet.BlockChain.SignTransaction(&tx, wallet.PrivateKey)
-
 	return &tx
 }
