@@ -14,11 +14,6 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-const (
-	dbFile       = config.DBFile
-	blocksBucket = config.BlockChainBucketName
-)
-
 type BlockChain struct {
 	tip []byte
 	DB  *bolt.DB
@@ -33,7 +28,7 @@ func (bc *BlockChain) MineBlock(transactions []*transaction.Transaction) *Block 
 
 	var lastHash []byte
 	err := bc.DB.View(func(t *bolt.Tx) error {
-		b := t.Bucket([]byte(blocksBucket))
+		b := t.Bucket([]byte(config.BlockChainBucketName))
 		lastHash = b.Get([]byte("l"))
 		return nil
 	})
@@ -42,7 +37,7 @@ func (bc *BlockChain) MineBlock(transactions []*transaction.Transaction) *Block 
 	}
 	newBlock := NewBlock(transactions, lastHash)
 	err = bc.DB.Update(func(t *bolt.Tx) error {
-		b := t.Bucket([]byte(blocksBucket))
+		b := t.Bucket([]byte(config.BlockChainBucketName))
 		if err := b.Put(newBlock.Hash, newBlock.Serialize()); err != nil {
 			return err
 		}
@@ -154,16 +149,16 @@ func (bc *BlockChain) VerifyTransaction(tx transaction.Transaction) bool {
 }
 
 func NewBlockChain() *BlockChain {
-	if !dbExist(dbFile) {
+	if !dbExist(config.DBFile) {
 		log.Panic("db file not exist")
 	}
-	db, err := bolt.Open(dbFile, 0600, nil)
+	db, err := bolt.Open(config.DBFile, 0600, nil)
 	if err != nil {
 		log.Panic(err)
 	}
 	var tip []byte
 	err = db.Update(func(t *bolt.Tx) error {
-		b := t.Bucket([]byte(blocksBucket))
+		b := t.Bucket([]byte(config.BlockChainBucketName))
 		if b == nil {
 			return errors.New("invalid db")
 		}
@@ -184,20 +179,20 @@ func NewBlockChain() *BlockChain {
 }
 
 func CreateBlockchain(address string) *BlockChain {
-	if dbExist(dbFile) {
+	if dbExist(config.DBFile) {
 		log.Panic("db already exist")
 	}
 	if address == "" || !wallet.ValidateAddress(address) {
 		log.Panic("invalid genesis address")
 	}
-	db, err := bolt.Open(dbFile, 0600, nil)
+	db, err := bolt.Open(config.DBFile, 0600, nil)
 	if err != nil {
 		log.Panic(err)
 	}
 	var tip []byte
 	err = db.Update(func(t *bolt.Tx) error {
 		genesis := NewGenesisBlock(transaction.NewCoinbaseTx(address, "to genesis"))
-		b, err := t.CreateBucket([]byte(blocksBucket))
+		b, err := t.CreateBucket([]byte(config.BlockChainBucketName))
 		if err != nil {
 			return err
 		}

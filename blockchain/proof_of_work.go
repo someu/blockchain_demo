@@ -1,15 +1,12 @@
 package blockchain
 
 import (
+	"blockchain_demo/config"
 	"blockchain_demo/utils"
 	"bytes"
 	"crypto/sha256"
-	"math"
 	"math/big"
 )
-
-const targetBits = 16
-const maxNonce = math.MaxInt64
 
 type ProofOfWork struct {
 	block  *Block
@@ -18,7 +15,7 @@ type ProofOfWork struct {
 
 func NewProofOfWork(b *Block) *ProofOfWork {
 	t := big.NewInt(1)
-	t.Lsh(t, uint(256-targetBits))
+	t.Lsh(t, uint(256-config.TargetBits))
 	return &ProofOfWork{
 		block:  b,
 		target: t,
@@ -31,7 +28,7 @@ func (p *ProofOfWork) prepareData(nonce int) []byte {
 			p.block.PrevBlockHash,
 			p.block.HashTransactions(),
 			utils.IntToHex(uint64(p.block.Timestamp)),
-			utils.IntToHex(uint64(targetBits)),
+			utils.IntToHex(uint64(config.TargetBits)),
 			utils.IntToHex(uint64(nonce)),
 		},
 		[]byte{},
@@ -43,7 +40,7 @@ func (p *ProofOfWork) Run() (int, []byte) {
 	var nonce = 0
 	var hash [32]byte
 	var hashInt big.Int
-	for ; nonce < maxNonce; nonce++ {
+	for ; nonce < config.MaxNonce; nonce++ {
 		d := p.prepareData(nonce)
 		hash = sha256.Sum256(d)
 		hashInt.SetBytes(hash[:])

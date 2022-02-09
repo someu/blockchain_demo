@@ -1,6 +1,8 @@
 package blockchain
 
 import (
+	"blockchain_demo/config"
+
 	"github.com/boltdb/bolt"
 )
 
@@ -12,7 +14,7 @@ type BlcokChainIterator struct {
 func (i *BlcokChainIterator) Next() *Block {
 	var block *Block
 	i.db.View(func(t *bolt.Tx) error {
-		b := t.Bucket([]byte(blocksBucket))
+		b := t.Bucket([]byte(config.BlockChainBucketName))
 		if b == nil {
 			return nil
 		}
