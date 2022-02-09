@@ -91,9 +91,9 @@ func (bc *BlockChain) FindUTXO() map[string]transaction.TXOutputs {
 			txID := hex.EncodeToString(tx.ID)
 		Spent:
 			for outIndex, out := range tx.Vout {
-				for _, spentOut := range spentTXOs[txID] {
-					if spentOut == outIndex {
-						break Spent
+				for _, spentOutIndex := range spentTXOs[txID] {
+					if spentOutIndex == outIndex {
+						continue Spent
 					}
 				}
 				outs := UTXOs[txID]

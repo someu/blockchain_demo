@@ -12,5 +12,5 @@ func (cli *CLI) ReindexUTXO() {
 		BlockChain: bc,
 	}
 	utxo.Reindex()
-	fmt.Println("done!")
+	fmt.Println("Done!")
 }
